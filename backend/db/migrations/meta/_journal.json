@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1793383202246,
+      "tag": "0000_equal_randall_flagg",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1793383261621,
+      "tag": "0001_supreme_cerebro",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793384530049,
+      "tag": "0002_burly_corsair",
+      "breakpoints": true
+    }
+  ]
+}
