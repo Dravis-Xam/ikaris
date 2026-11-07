@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
-import ShoeShowcase from './ShoeShowcase.jsx'
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
 import './App.css'
+
+const ShoeShowcase = lazy(() => import('./ShoeShowcase.jsx'))
 
 const sampleProducts = [
   {
@@ -288,7 +289,9 @@ export default function App() {
           </div>
           <div className="hero-visual">
             <div className="hero-index"><span>01</span><i /> THE EVERYDAY FORM</div>
-            <ShoeShowcase product={sampleProducts[0]} />
+            <Suspense fallback={<div className="shoe-showcase shoe-showcase--loading"><img className="shoe-showcase__fallback-image" src={sampleProducts[0].images[0]} alt="Featured running sneaker" /><span className="shoe-showcase__model-tag">ASV / MODEL 01</span><span className="shoe-showcase__interaction">Preparing 3D view</span></div>}>
+              <ShoeShowcase product={sampleProducts[0]} />
+            </Suspense>
             <span className="hero-side-note">FORM FOLLOWS FEELING / 2026</span>
             <div className="hero-caption"><span>VENNETTA RUNNER</span><b>01 / 04</b></div>
           </div>
