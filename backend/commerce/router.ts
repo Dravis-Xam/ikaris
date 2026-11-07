@@ -37,6 +37,14 @@ const variantInput = z.object({
 })
 const variantPatch = variantInput.partial().omit({ stockQuantity: true })
 const orderInput = z.object({ addressId: uuid })
+const addressInput = z.object({
+  recipientName: z.string().trim().min(1).max(200),
+  phoneNumber: z.string().trim().min(5).max(32),
+  county: z.string().trim().min(1).max(120),
+  town: z.string().trim().min(1).max(120),
+  streetAddress: z.string().trim().min(1).max(1000),
+  isDefault: z.boolean().optional(),
+})
 const orderStatusInput = z.object({ status: z.enum(['confirmed', 'processing', 'shipped', 'delivered', 'cancelled']) })
 
 export function createCommerceRouter(
@@ -140,6 +148,13 @@ export function createCommerceRouter(
   }))
 
   router.use(requireCustomer)
+  router.get('/addresses', route(async (_request, response) => {
+    response.json({ items: await commerce.listAddresses(getPrincipal(response).accountId) })
+  }))
+  router.post('/addresses', route(async (request, response) => {
+    const item = await commerce.createAddress(getPrincipal(response).accountId, addressInput.parse(request.body))
+    response.status(201).json({ item })
+  }))
   router.get('/cart', route(async (_request, response) => {
     const principal = getPrincipal(response)
     response.json({ items: await commerce.getCart(principal.accountId) })

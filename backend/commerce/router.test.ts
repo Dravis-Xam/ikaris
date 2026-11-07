@@ -42,6 +42,8 @@ const commerceRepository: CommerceRepository = {
   async addCartItem() { return null },
   async updateCartItem() { return null },
   async removeCartItem() { return false },
+  async listAddresses() { return [] },
+  async createAddress(_userId, input) { return { id: randomUUID(), ...input, isDefault: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() } },
   async createOrder() { throw new Error('not used') },
   async listOrders(_id, page, pageSize) { return { items: [], total: 0, page, pageSize } },
   async getOrder() { return null },
@@ -98,5 +100,23 @@ describe('commerce routes', () => {
 
     expect(response.status).toBe(400)
     expect(response.body.error.code).toBe('IDEMPOTENCY_KEY_REQUIRED')
+  })
+
+  it('allows a customer to list and create delivery addresses', async () => {
+    const listBefore = await request(app).get('/api/v1/addresses').set('Authorization', `Bearer ${customerToken}`)
+    const createAddress = await request(app).post('/api/v1/addresses')
+      .set('Authorization', `Bearer ${customerToken}`)
+      .send({
+        recipientName: 'M. Wanjiku',
+        phoneNumber: '+254712345678',
+        county: 'Nairobi',
+        town: 'Westlands',
+        streetAddress: '12 Yaya Centre, Suite 4',
+        isDefault: true,
+      })
+
+    expect(listBefore.status).toBe(200)
+    expect(createAddress.status).toBe(201)
+    expect(createAddress.body.item.recipientName).toBe('M. Wanjiku')
   })
 })

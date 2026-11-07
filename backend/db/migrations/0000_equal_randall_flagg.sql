@@ -279,6 +279,7 @@ ALTER TABLE "inventory_transactions" ADD CONSTRAINT "inventory_transactions_vari
 ALTER TABLE "shoe_variants" ADD CONSTRAINT "shoe_variants_shoe_id_shoes_id_fk" FOREIGN KEY ("shoe_id") REFERENCES "public"."shoes"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "shoes" ADD CONSTRAINT "shoes_category_id_categories_id_fk" FOREIGN KEY ("category_id") REFERENCES "public"."categories"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_cart_id_carts_id_fk" FOREIGN KEY ("cart_id") REFERENCES "public"."carts"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "shoe_variants_id_shoe_uq" ON "shoe_variants" USING btree ("id","shoe_id");--> statement-breakpoint
 ALTER TABLE "cart_items" ADD CONSTRAINT "cart_items_variant_id_shoe_id_shoe_variants_id_shoe_id_fk" FOREIGN KEY ("variant_id","shoe_id") REFERENCES "public"."shoe_variants"("id","shoe_id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "carts" ADD CONSTRAINT "carts_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "delivery_tracking" ADD CONSTRAINT "delivery_tracking_order_id_orders_id_fk" FOREIGN KEY ("order_id") REFERENCES "public"."orders"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -306,7 +307,6 @@ CREATE INDEX "categories_parent_id_idx" ON "categories" USING btree ("parent_cat
 CREATE INDEX "inventory_transactions_variant_created_idx" ON "inventory_transactions" USING btree ("variant_id","created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "shoe_variants_sku_uq" ON "shoe_variants" USING btree ("sku");--> statement-breakpoint
 CREATE UNIQUE INDEX "shoe_variants_shoe_size_color_uq" ON "shoe_variants" USING btree ("shoe_id","size",lower("color"));--> statement-breakpoint
-CREATE UNIQUE INDEX "shoe_variants_id_shoe_uq" ON "shoe_variants" USING btree ("id","shoe_id");--> statement-breakpoint
 CREATE INDEX "shoe_variants_shoe_id_idx" ON "shoe_variants" USING btree ("shoe_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "shoes_slug_uq" ON "shoes" USING btree ("slug");--> statement-breakpoint
 CREATE INDEX "shoes_category_status_idx" ON "shoes" USING btree ("category_id","status");--> statement-breakpoint

@@ -1,0 +1,94 @@
+@font-face {
+	font-family: 'DM Sans';
+	src: url('/fonts/dm-sans-regular.ttf') format('truetype');
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Playfair Display';
+	src: url('/fonts/playfair-display-regular.ttf') format('truetype');
+	font-style: normal;
+	font-weight: 400 700;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'Playfair Display';
+	src: url('/fonts/playfair-display-italic.ttf') format('truetype');
+	font-style: italic;
+	font-weight: 400 500;
+	font-display: swap;
+}
+
+:root {
+	font-family: 'DM Sans', 'Avenir Next', sans-serif;
+	color: #242323;
+	background: #fff;
+	font-synthesis: none;
+	text-rendering: optimizeLegibility;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+
+	--page: #fff;
+	--surface: #fbf9f7;
+	--surface-raised: #fff;
+	--surface-soft: #f5f0ed;
+	--ink: #242323;
+	--ink-soft: #68615e;
+	--muted: #8c8581;
+	--line: #e8e2de;
+	--line-strong: #d7ceca;
+	--accent: #d8aeb0;
+	--accent-strong: #b57d82;
+	--accent-ink: #30090d;
+	--gold: #d9b58d;
+	--ivory: #f2dfc5;
+	--burgundy: #30090d;
+	--velvet: #681d27;
+	--blush: #ddaeb0;
+	--shadow: 0 24px 70px rgb(42 31 27 / 9%);
+	--heading: 'Playfair Display', 'Bodoni 72', Georgia, serif;
+}
+
+:root[data-theme='dark'] {
+	color-scheme: dark;
+	color: #f4f1ef;
+	background: #08090d;
+	--page: #08090d;
+	--surface: #101218;
+	--surface-raised: #151820;
+	--surface-soft: #171a22;
+	--ink: #f4f1ef;
+	--ink-soft: #c1bdc2;
+	--muted: #8f929d;
+	--line: #282d38;
+	--line-strong: #3a404d;
+	--accent: #9fb4de;
+	--accent-strong: #7394ce;
+	--accent-ink: #101b32;
+	--gold: #d9b58d;
+	--ivory: #f2dfc5;
+	--burgundy: #30090d;
+	--velvet: #681d27;
+	--blush: #ddaeb0;
+	--shadow: 0 24px 70px rgb(0 0 0 / 35%);
+}
+
+* { box-sizing: border-box; }
+html { min-width: 320px; scroll-behavior: smooth; scroll-padding-top: 96px; }
+body { min-width: 320px; margin: 0; background: var(--page); color: var(--ink); transition: background-color 220ms ease, color 220ms ease; }
+body, button, input, select { font-family: 'DM Sans', 'Avenir Next', sans-serif; }
+button, input, select { color: inherit; }
+button { font: inherit; }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 3px; }
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+::selection { color: var(--burgundy); background: var(--blush); }
+
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+	*, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

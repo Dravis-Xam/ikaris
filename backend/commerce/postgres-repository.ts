@@ -324,6 +324,29 @@ export function createPostgresCommerceRepository(pool: Pool, readPool: Pool = po
       return result.rowCount === 1
     },
 
+    async listAddresses(userId) {
+      const { rows } = await readPool.query<Row>(
+        `SELECT id, user_id AS "userId", recipient_name AS "recipientName", phone_number AS "phoneNumber",
+           county, town, street_address AS "streetAddress", is_default AS "isDefault", created_at AS "createdAt", updated_at AS "updatedAt"
+         FROM addresses WHERE user_id = $1 ORDER BY is_default DESC, created_at DESC`, [userId],
+      )
+      return rows
+    },
+
+    async createAddress(userId, input) {
+      if (input.isDefault) {
+        await pool.query('UPDATE addresses SET is_default = false WHERE user_id = $1', [userId])
+      }
+      const { rows } = await pool.query<Row>(
+        `INSERT INTO addresses (user_id, recipient_name, phone_number, county, town, street_address, is_default)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)
+         RETURNING id, user_id AS "userId", recipient_name AS "recipientName", phone_number AS "phoneNumber",
+           county, town, street_address AS "streetAddress", is_default AS "isDefault", created_at AS "createdAt", updated_at AS "updatedAt"`,
+        [userId, input.recipientName, input.phoneNumber, input.county, input.town, input.streetAddress, input.isDefault ?? false],
+      )
+      return rows[0]
+    },
+
     async createOrder(userId, addressId, idempotencyKey): Promise<OrderResult> {
       const client = await pool.connect()
       try {
