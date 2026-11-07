@@ -3,20 +3,6 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  build: {
-    chunkSizeWarningLimit: 800,
-    rolldownOptions: {
-      output: {
-        codeSplitting: {
-          groups: [
-            { name: 'three-core', test: /node_modules\/three\// },
-            { name: 'react-three', test: /node_modules\/@react-three\// },
-            { name: 'three-helpers', test: /node_modules\/(gsap|maath|meshline|camera-controls)\// },
-          ],
-        },
-      },
-    },
-  },
   optimizeDeps: {
     exclude: ['@vitejs/plugin-react/preamble'],
   },

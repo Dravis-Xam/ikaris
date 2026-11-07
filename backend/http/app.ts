@@ -38,7 +38,16 @@ export function createApp(dependencies: AppDependencies = {}) {
 
   app.disable('x-powered-by')
   app.set('trust proxy', 1)
-  app.use(helmet())
+  app.use(helmet({
+    contentSecurityPolicy: {
+      directives: {
+        scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client', 'https://appleid.cdn-apple.com'],
+        workerSrc: ["'self'", 'blob:'],
+        connectSrc: ["'self'", 'https://accounts.google.com', 'https://www.googleapis.com', 'https://appleid.apple.com'],
+        frameSrc: ["'self'", 'https://accounts.google.com', 'https://appleid.apple.com'],
+      },
+    },
+  }))
   app.use(cors({ origin: environment.CLIENT_ORIGIN ?? false }))
   if (environment.NODE_ENV === 'production') {
     app.use((request, response, next) => {
@@ -105,7 +114,13 @@ export function createApp(dependencies: AppDependencies = {}) {
   })
 
   if (dependencies.authRepository && dependencies.accessTokenSecret) {
-    app.use('/api/v1/auth', createAuthRouter(dependencies.authRepository, dependencies.accessTokenSecret))
+    const clientOrigin = environment.CLIENT_ORIGIN ?? 'http://localhost:3000'
+    app.use('/api/v1/auth', createAuthRouter(dependencies.authRepository, dependencies.accessTokenSecret, {
+      googleClientId: environment.GOOGLE_CLIENT_ID,
+      appleClientId: environment.APPLE_CLIENT_ID,
+      webAuthnRpId: environment.WEBAUTHN_RP_ID ?? new URL(clientOrigin).hostname,
+      webAuthnOrigin: environment.WEBAUTHN_ORIGIN ?? clientOrigin,
+    }))
     if (dependencies.commerceRepository) {
       if (dependencies.databasePool) app.use('/api/v1', adminAuditMiddleware(dependencies.databasePool))
       app.use('/api/v1', createCommerceRouter(

@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm'
-import { boolean, check, index, integer, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { bigint, boolean, check, index, integer, pgTable, text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 import { accountStatusEnum } from './enums.js'
 
 export const users = pgTable('users', {
@@ -8,7 +8,7 @@ export const users = pgTable('users', {
   lastName: varchar('last_name', { length: 100 }).notNull(),
   email: varchar('email', { length: 320 }).notNull(),
   phoneNumber: varchar('phone_number', { length: 32 }),
-  passwordHash: text('password_hash').notNull(),
+  passwordHash: text('password_hash'),
   profileImage: text('profile_image'),
   status: accountStatusEnum('status').notNull().default('active'),
   profileVersion: integer('profile_version').notNull().default(1),
@@ -35,6 +35,45 @@ export const admins = pgTable('admins', {
   check('admins_singleton_only_check', sql`${table.singleton} = true`),
   uniqueIndex('admins_single_owner_uq').on(table.singleton),
   uniqueIndex('admins_email_lower_uq').on(sql`lower(${table.email})`),
+])
+
+export const authIdentities = pgTable('auth_identities', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  provider: varchar('provider', { length: 20 }).notNull(),
+  subject: varchar('subject', { length: 255 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('auth_identities_provider_subject_uq').on(table.provider, table.subject),
+  index('auth_identities_user_id_idx').on(table.userId),
+  check('auth_identities_provider_check', sql`${table.provider} in ('google', 'apple')`),
+])
+
+export const adminPasskeys = pgTable('admin_passkeys', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  adminId: uuid('admin_id').notNull().references(() => admins.id, { onDelete: 'cascade' }),
+  credentialId: text('credential_id').notNull(),
+  publicKey: text('public_key').notNull(),
+  counter: bigint('counter', { mode: 'number' }).notNull().default(0),
+  transports: text('transports').array().notNull().default([]),
+  deviceType: varchar('device_type', { length: 32 }).notNull(),
+  backedUp: boolean('backed_up').notNull().default(false),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  uniqueIndex('admin_passkeys_credential_id_uq').on(table.credentialId),
+  index('admin_passkeys_admin_id_idx').on(table.adminId),
+])
+
+export const adminPasskeyChallenges = pgTable('admin_passkey_challenges', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  adminId: uuid('admin_id').references(() => admins.id, { onDelete: 'cascade' }),
+  challenge: text('challenge').notNull(),
+  type: varchar('type', { length: 20 }).notNull(),
+  expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('admin_passkey_challenges_expiry_idx').on(table.expiresAt),
+  check('admin_passkey_challenges_type_check', sql`${table.type} in ('registration', 'authentication')`),
 ])
 
 export const sessions = pgTable('sessions', {

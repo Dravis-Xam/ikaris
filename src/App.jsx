@@ -1,7 +1,10 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import './App.css'
 
-const ShoeShowcase = lazy(() => import('./ShoeShowcase.jsx'))
+const OwnerPortal = lazy(() => import('./OwnerPortal.jsx'))
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID
+const appleClientId = import.meta.env.VITE_APPLE_CLIENT_ID
+const appleRedirectUri = import.meta.env.VITE_APPLE_REDIRECT_URI ?? window.location.origin
 
 const sampleProducts = [
   {
@@ -84,6 +87,7 @@ function getAccessToken() {
 
 export default function App() {
   const [theme, setTheme] = useState(() => window.localStorage.getItem('asv.theme') ?? 'light')
+  const [scrollRevealsEnabled, setScrollRevealsEnabled] = useState(() => window.localStorage.getItem('asv.scrollReveals') !== 'false')
   const [backendStatus, setBackendStatus] = useState('checking')
   const [products, setProducts] = useState(sampleProducts)
   const [catalogMode, setCatalogMode] = useState('loading')
@@ -92,7 +96,6 @@ export default function App() {
   const [cart, setCart] = useState([])
   const [drawer, setDrawer] = useState(null)
   const [authOpen, setAuthOpen] = useState(false)
-  const [authType, setAuthType] = useState('customer')
   const [authMode, setAuthMode] = useState('login')
   const [authError, setAuthError] = useState('')
   const [authBusy, setAuthBusy] = useState(false)
@@ -101,11 +104,113 @@ export default function App() {
     try { return saved ? JSON.parse(saved) : null } catch { return null }
   })
   const [toast, setToast] = useState('')
+  const [featureDrawerOpen, setFeatureDrawerOpen] = useState(false)
+  const [ownerPortalOpen, setOwnerPortalOpen] = useState(false)
+  const featureTabRef = useRef(null)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
     window.localStorage.setItem('asv.theme', theme)
   }, [theme])
+
+  useEffect(() => {
+    window.localStorage.setItem('asv.scrollReveals', String(scrollRevealsEnabled))
+  }, [scrollRevealsEnabled])
+
+  useEffect(() => {
+    if (!featureDrawerOpen) return undefined
+    const featureTab = featureTabRef.current
+    document.querySelector('#feature-drawer input')?.focus()
+    const handleDrawerKeys = (event) => {
+      if (event.key === 'Escape') {
+        setFeatureDrawerOpen(false)
+        return
+      }
+      if (event.key !== 'Tab') return
+
+      const focusable = document.querySelectorAll('#feature-drawer button:not(:disabled), #feature-drawer input:not(:disabled)')
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault()
+        last?.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault()
+        first?.focus()
+      }
+    }
+    window.addEventListener('keydown', handleDrawerKeys)
+    return () => {
+      window.removeEventListener('keydown', handleDrawerKeys)
+      if (featureTab) requestAnimationFrame(() => featureTab.focus())
+    }
+  }, [featureDrawerOpen])
+
+  useLayoutEffect(() => {
+    if (!scrollRevealsEnabled || window.matchMedia('(prefers-reduced-motion: reduce)').matches || !('IntersectionObserver' in window)) return undefined
+
+    const sections = document.querySelectorAll('.site-shell main > section')
+    const revealTargets = []
+
+    sections.forEach((section) => {
+      const components = [...section.children]
+      const repeatedItems = [...section.querySelectorAll('.product-card, .service-grid > article')]
+
+      components.forEach((component, index) => {
+        component.style.setProperty('--scroll-reveal-delay', `${index * 80}ms`)
+        revealTargets.push(component)
+      })
+
+      repeatedItems.forEach((item, index) => {
+        item.style.setProperty('--scroll-reveal-delay', `${index * 80}ms`)
+        revealTargets.push(item)
+      })
+    })
+    let previousScrollY = window.scrollY
+    let scrollDirection = 'up'
+
+    revealTargets.forEach((target) => {
+      const bounds = target.getBoundingClientRect()
+      const isVisible = bounds.bottom > 0 && bounds.top < window.innerHeight
+      target.dataset.scrollDirection = isVisible || bounds.top >= window.innerHeight ? 'up' : 'down'
+      target.dataset.scrollState = isVisible ? 'visible' : bounds.top >= window.innerHeight ? 'before' : 'after'
+      target.dataset.scrollReveal = ''
+    })
+
+    const updateScrollDirection = () => {
+      const currentScrollY = window.scrollY
+      if (currentScrollY !== previousScrollY) scrollDirection = currentScrollY > previousScrollY ? 'up' : 'down'
+      previousScrollY = currentScrollY
+    }
+
+    window.addEventListener('scroll', updateScrollDirection, { passive: true })
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        const target = entry.target
+
+        if (entry.isIntersecting) {
+          target.dataset.scrollDirection = scrollDirection
+          target.dataset.scrollState = 'visible'
+        } else if (target.dataset.scrollState === 'visible') {
+          target.dataset.scrollDirection = scrollDirection
+          target.dataset.scrollState = scrollDirection === 'up' ? 'after' : 'before'
+        }
+      })
+    }, { threshold: 0.02, rootMargin: '6% 0px' })
+
+    revealTargets.forEach((target) => observer.observe(target))
+
+    return () => {
+      window.removeEventListener('scroll', updateScrollDirection)
+      observer.disconnect()
+      revealTargets.forEach((target) => {
+        delete target.dataset.scrollDirection
+        delete target.dataset.scrollState
+        delete target.dataset.scrollReveal
+        target.style.removeProperty('--scroll-reveal-delay')
+      })
+    }
+  }, [catalogMode, products, scrollRevealsEnabled])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -125,8 +230,8 @@ export default function App() {
         if (!response.ok) throw new Error('Catalog unavailable')
         const result = await response.json()
         if (!Array.isArray(result.items)) throw new Error('Invalid catalog response')
-        setProducts(result.items)
-        setCatalogMode(result.items.length ? 'live' : 'empty')
+        setProducts(result.items.length ? result.items : sampleProducts)
+        setCatalogMode(result.items.length ? 'live' : 'preview')
       })
       .catch((error) => { if (error.name !== 'AbortError') setCatalogMode('preview') })
     return () => controller.abort()
@@ -180,7 +285,6 @@ export default function App() {
       return
     }
     if (!account || account.type !== 'customer') {
-      setAuthType('customer')
       setAuthMode('login')
       setAuthOpen(true)
       return
@@ -218,26 +322,48 @@ export default function App() {
     setAuthBusy(true)
     setAuthError('')
     const payload = Object.fromEntries(new FormData(event.currentTarget).entries())
-    const path = authType === 'admin'
-      ? '/api/v1/auth/admin/login'
-      : `/api/v1/auth/customer/${authMode === 'register' ? 'register' : 'login'}`
+    const path = `/api/v1/auth/customer/${authMode === 'register' ? 'register' : 'login'}`
     try {
       const response = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error?.message ?? 'Unable to sign in')
-      const identity = { ...result.account, type: authType }
-      window.localStorage.setItem('asv.accessToken', result.accessToken)
-      window.localStorage.setItem('asv.refreshToken', result.refreshToken)
-      window.localStorage.setItem('asv.account', JSON.stringify(identity))
-      setAccount(identity)
-      setAuthOpen(false)
-      if (authType === 'admin') setDrawer('owner')
-      setToast(`Welcome${identity.firstName ? `, ${identity.firstName}` : ''}`)
+      acceptAuthResult(result, 'customer')
     } catch (error) {
       setAuthError(error.message)
     } finally {
       setAuthBusy(false)
     }
+  }
+
+  async function submitSocialAuth(provider, credential) {
+    setAuthBusy(true)
+    setAuthError('')
+    try {
+      const response = await fetch(`/api/v1/auth/customer/${provider}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error?.message ?? `${provider} sign-in failed`)
+      acceptAuthResult(result, 'customer')
+    } catch (error) {
+      setAuthError(error.message)
+    } finally {
+      setAuthBusy(false)
+    }
+  }
+
+  function acceptAuthResult(result, type) {
+    const identity = { ...result.account, type }
+    window.localStorage.setItem('asv.accessToken', result.accessToken)
+    window.localStorage.setItem('asv.refreshToken', result.refreshToken)
+    window.localStorage.setItem('asv.account', JSON.stringify(identity))
+    setAccount(identity)
+    setAuthOpen(false)
+    setOwnerPortalOpen(false)
+    if (type === 'admin') setDrawer('owner')
+    setToast(`Welcome${identity.firstName ? `, ${identity.firstName}` : ''}`)
   }
 
   function signOut() {
@@ -250,8 +376,7 @@ export default function App() {
     setToast('You are signed out')
   }
 
-  function openAuth(type = 'customer') {
-    setAuthType(type)
+  function openAuth() {
     setAuthMode('login')
     setAuthError('')
     setAuthOpen(true)
@@ -288,12 +413,12 @@ export default function App() {
             <div className="hero-proof"><span className="proof-line" /><span>Independent spirit. Intentional design.</span></div>
           </div>
           <div className="hero-visual">
-            <div className="hero-index"><span>01</span><i /> THE EVERYDAY FORM</div>
-            <Suspense fallback={<div className="shoe-showcase shoe-showcase--loading"><img className="shoe-showcase__fallback-image" src={sampleProducts[0].images[0]} alt="Featured running sneaker" /><span className="shoe-showcase__model-tag">ASV / MODEL 01</span><span className="shoe-showcase__interaction">Preparing 3D view</span></div>}>
-              <ShoeShowcase product={sampleProducts[0]} />
-            </Suspense>
+            <div className="hero-index"><span>01</span><i /> BLACK / WHITE / EVERYDAY</div>
+            <div className="shoe-showcase shoe-showcase--image">
+              <img className="shoe-showcase__image" src="/images/WhatsApp_Image_2026-11-07_at_15.11.08-removebg-preview.png" alt="Black and white Nike sneakers" />
+            </div>
             <span className="hero-side-note">FORM FOLLOWS FEELING / 2026</span>
-            <div className="hero-caption"><span>VENNETTA RUNNER</span><b>01 / 04</b></div>
+            <div className="hero-caption"><span>BLACK / WHITE RUNNER</span><b>01 / 04</b></div>
           </div>
           <div className="hero-bottomline"><span>Made for the in-between moments.</span><a href="#collection">Scroll to explore <ArrowDownIcon /></a><span>01 — 04</span></div>
         </section>
@@ -325,9 +450,20 @@ export default function App() {
         </div></section>
       </main>
 
-      <footer className="site-footer"><a className="footer-wordmark" href="#top">A SOLE VENNETTA <small>SNEAKERS ✦ STYLE ✦ EVERY STEP</small></a><span>Designed for your every day.</span><div className="footer-actions"><a href="#collection">The collection</a><button onClick={() => openAuth('admin')}>Owner sign in</button><span>© ASV 2026</span></div></footer>
+      <footer className="site-footer"><a className="footer-wordmark" href="#top">A SOLE VENNETTA <small>SNEAKERS ✦ STYLE ✦ EVERY STEP</small></a><span>Designed for your every day.</span><div className="footer-actions"><a href="#collection">The collection</a><button onClick={() => setOwnerPortalOpen(true)}>Owner portal</button><span>© ASV 2026</span></div></footer>
+      <button ref={featureTabRef} className="feature-tab" onClick={() => setFeatureDrawerOpen(true)} aria-label="Open feature settings" aria-expanded={featureDrawerOpen} aria-controls="feature-drawer" title="Feature settings"><ChevronLeftIcon /></button>
+      {featureDrawerOpen && <div className="feature-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) setFeatureDrawerOpen(false) }}>
+        <aside className="feature-drawer" id="feature-drawer" role="dialog" aria-modal="true" aria-labelledby="feature-drawer-title">
+          <div className="feature-drawer-heading"><div><p className="eyebrow"><span /> PERSONALIZE</p><h2 id="feature-drawer-title">Your view</h2></div><button className="icon-button" onClick={() => setFeatureDrawerOpen(false)} aria-label="Close feature settings"><ChevronRightIcon /></button></div>
+          <div className="feature-settings">
+            <label className="feature-toggle-row"><span>Scroll reveals</span><span className="feature-switch"><input type="checkbox" checked={scrollRevealsEnabled} onChange={(event) => setScrollRevealsEnabled(event.target.checked)} /><i /></span></label>
+            <div className="feature-theme-row"><span>Theme</span><button className="feature-theme-button" onClick={() => setTheme((current) => current === 'light' ? 'dark' : 'light')} aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`} title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}>{theme === 'light' ? <MoonIcon /> : <SunIcon />}<span>{theme === 'light' ? 'Dark' : 'Light'}</span></button></div>
+          </div>
+        </aside>
+      </div>}
       {drawer && <SidePanel type={drawer} account={account} cart={cart} onClose={() => setDrawer(null)} onRemove={removeCartItem} onSignOut={signOut} onOrderPlaced={() => { setCart([]); setDrawer(null); setToast('Order placed. Payment is pending.') }} />}
-      {authOpen && <AuthDialog type={authType} mode={authMode} busy={authBusy} error={authError} onTypeChange={openAuth} onModeChange={setAuthMode} onClose={() => setAuthOpen(false)} onSubmit={submitAuth} />}
+      {authOpen && <AuthDialog mode={authMode} busy={authBusy} error={authError} onModeChange={setAuthMode} onClose={() => setAuthOpen(false)} onSubmit={submitAuth} onSocialAuth={submitSocialAuth} />}
+      {ownerPortalOpen && <Suspense fallback={<div className="dialog-backdrop"><div className="auth-dialog owner-passkey-dialog" role="status">Opening owner portal...</div></div>}><OwnerPortal onClose={() => setOwnerPortalOpen(false)} onAuthenticated={(result) => acceptAuthResult(result, 'admin')} /></Suspense>}
       {toast && <div className="toast-message" role="status">{toast}</div>}
     </div>
   )
@@ -618,20 +754,93 @@ function OrderAction({ order, onAdvance }) {
   return <span className="owner-pending">{order.status}</span>
 }
 
-function AuthDialog({ type, mode, busy, error, onTypeChange, onModeChange, onClose, onSubmit }) {
+function AuthDialog({ mode, busy, error, onModeChange, onClose, onSubmit, onSocialAuth }) {
+  const [googleReady, setGoogleReady] = useState(false)
+  const [appleReady, setAppleReady] = useState(false)
+  const [providerError, setProviderError] = useState('')
+  const onSocialAuthRef = useRef(onSocialAuth)
+
+  useEffect(() => { onSocialAuthRef.current = onSocialAuth }, [onSocialAuth])
+
+  useEffect(() => {
+    let active = true
+    if (googleClientId) {
+      const script = document.querySelector('#google-identity-script') ?? document.createElement('script')
+      script.id = 'google-identity-script'
+      script.src = 'https://accounts.google.com/gsi/client'
+      script.async = true
+      script.onload = () => {
+        if (!active || !window.google?.accounts?.id) return
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: ({ credential }) => {
+            if (credential) void onSocialAuthRef.current('google', credential)
+          },
+        })
+        setGoogleReady(true)
+      }
+      if (!script.isConnected) document.head.appendChild(script)
+      else if (window.google?.accounts?.id) {
+        window.google.accounts.id.initialize({
+          client_id: googleClientId,
+          callback: ({ credential }) => {
+            if (credential) void onSocialAuthRef.current('google', credential)
+          },
+        })
+        requestAnimationFrame(() => { if (active) setGoogleReady(true) })
+      }
+    }
+
+    if (appleClientId) {
+      const script = document.querySelector('#apple-identity-script') ?? document.createElement('script')
+      script.id = 'apple-identity-script'
+      script.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js'
+      script.async = true
+      script.onload = () => {
+        if (!active || !window.AppleID?.auth) return
+        window.AppleID.auth.init({ clientId: appleClientId, scope: 'name email', redirectURI: appleRedirectUri, usePopup: true })
+        setAppleReady(true)
+      }
+      if (!script.isConnected) document.head.appendChild(script)
+      else if (window.AppleID?.auth) {
+        window.AppleID.auth.init({ clientId: appleClientId, scope: 'name email', redirectURI: appleRedirectUri, usePopup: true })
+        requestAnimationFrame(() => { if (active) setAppleReady(true) })
+      }
+    }
+
+    return () => { active = false }
+  }, [])
+
+  async function continueWithApple() {
+    setProviderError('')
+    try {
+      const result = await window.AppleID.auth.signIn()
+      const credential = result?.authorization?.id_token
+      if (!credential) throw new Error('Apple did not return an identity token')
+      await onSocialAuthRef.current('apple', credential)
+    } catch (exception) {
+      if (exception?.error !== 'popup_closed_by_user') setProviderError(exception.message ?? 'Apple sign-in could not be completed')
+    }
+  }
+
   return <div className="dialog-backdrop" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
     <section className="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="auth-title">
       <button className="icon-button auth-close" onClick={onClose} aria-label="Close sign in"><CloseIcon /></button>
-      <p className="eyebrow"><span /> A SOLE VENNETTA</p><h2 id="auth-title">{type === 'admin' ? 'Owner access.' : mode === 'register' ? 'Your next chapter.' : 'Welcome back.'}</h2>
-      <p className="auth-intro">{type === 'admin' ? 'A private door to your store studio.' : 'A considered place for the pairs you love.'}</p>
-      <div className="segmented-control" aria-label="Choose sign in type"><button className={type === 'customer' ? 'is-selected' : ''} onClick={() => onTypeChange('customer')}>Customer</button><button className={type === 'admin' ? 'is-selected' : ''} onClick={() => onTypeChange('admin')}>Store owner</button></div>
-      {type === 'customer' && <div className="auth-mode"><button className={mode === 'login' ? 'is-current' : ''} onClick={() => onModeChange('login')}>Sign in</button><button className={mode === 'register' ? 'is-current' : ''} onClick={() => onModeChange('register')}>Create account</button></div>}
+      <p className="eyebrow"><span /> A SOLE VENNETTA</p><h2 id="auth-title">{mode === 'register' ? 'Your next chapter.' : 'Welcome back.'}</h2>
+      <p className="auth-intro">A considered place for the pairs you love.</p>
+      <div className="auth-mode"><button className={mode === 'login' ? 'is-current' : ''} onClick={() => onModeChange('login')}>Sign in</button><button className={mode === 'register' ? 'is-current' : ''} onClick={() => onModeChange('register')}>Create account</button></div>
+      <div className="social-auth">
+        <button className="social-auth-button" disabled={!googleReady || busy} onClick={() => { setProviderError(''); window.google.accounts.id.prompt() }}><GoogleIcon /><span>Continue with Google</span></button>
+        <button className="social-auth-button" disabled={!appleReady || busy} onClick={() => void continueWithApple()}><AppleIcon /><span>Continue with Apple</span></button>
+      </div>
+      {!googleClientId || !appleClientId ? <p className="provider-setup-note">Social sign-in becomes available when its provider is configured.</p> : null}
+      <div className="auth-divider"><span>or with email</span></div>
       <form className="auth-form" onSubmit={onSubmit}>
-        {mode === 'register' && type === 'customer' && <div className="auth-name-fields"><label>First name<input name="firstName" required autoComplete="given-name" /></label><label>Last name<input name="lastName" required autoComplete="family-name" /></label></div>}
+        {mode === 'register' && <div className="auth-name-fields"><label>First name<input name="firstName" required autoComplete="given-name" /></label><label>Last name<input name="lastName" required autoComplete="family-name" /></label></div>}
         <label>Email address<input name="email" type="email" required autoComplete="email" /></label>
         <label>Password<input name="password" type="password" required minLength={mode === 'register' ? 12 : 1} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} /></label>
-        {error && <p className="form-error" role="alert">{error}</p>}
-        <button className="primary-button auth-submit" disabled={busy}>{busy ? 'One moment...' : type === 'admin' ? 'Enter the studio' : mode === 'register' ? 'Create your account' : 'Sign in'} <ArrowIcon /></button>
+        {(error || providerError) && <p className="form-error" role="alert">{error || providerError}</p>}
+        <button className="primary-button auth-submit" disabled={busy}>{busy ? 'One moment...' : mode === 'register' ? 'Create your account' : 'Sign in'} <ArrowIcon /></button>
       </form>
       <p className="auth-note">By continuing, you agree to our terms and privacy policy.</p>
     </section>
@@ -648,4 +857,8 @@ function ArrowDownIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><p
 function SearchIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6" /><path d="m16 16 4 4" /></svg> }
 function PlusIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg> }
 function CloseIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg> }
+function ChevronLeftIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7" /></svg> }
+function ChevronRightIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5 7 7-7 7" /></svg> }
+function GoogleIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285f4" d="M21.6 12.23c0-.72-.06-1.42-.18-2.1H12v3.97h5.39a4.62 4.62 0 0 1-2 3.03v2.48h3.23c1.9-1.75 2.98-4.33 2.98-7.38Z" /><path fill="#34a853" d="M12 22c2.7 0 4.96-.9 6.62-2.39l-3.23-2.48c-.9.6-2.05.96-3.39.96-2.6 0-4.8-1.76-5.59-4.13H3.08v2.56A10 10 0 0 0 12 22Z" /><path fill="#fbbc05" d="M6.41 13.96A6.02 6.02 0 0 1 6.1 12c0-.68.11-1.34.31-1.96V7.48H3.08A10 10 0 0 0 2 12c0 1.62.39 3.15 1.08 4.52l3.33-2.56Z" /><path fill="#ea4335" d="M12 5.91c1.47 0 2.79.51 3.83 1.51l2.87-2.87C16.95 2.98 14.7 2 12 2a10 10 0 0 0-8.92 5.48l3.33 2.56C7.2 7.67 9.4 5.91 12 5.91Z" /></svg> }
+function AppleIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.05 12.54c.02 2.16 1.9 2.88 1.92 2.89-.02.05-.3 1.04-.98 2.06-.59.88-1.2 1.75-2.16 1.77-.94.02-1.25-.57-2.34-.57s-1.43.55-2.32.59c-.93.04-1.64-.95-2.24-1.83-1.22-1.77-2.15-5.01-.9-7.2.62-1.09 1.74-1.78 2.95-1.8.92-.02 1.78.62 2.34.62.56 0 1.61-.77 2.72-.66.47.02 1.8.19 2.65 1.44-.07.04-1.58.93-1.64 2.69ZM15.28 6.72c.5-.61.84-1.45.75-2.29-.73.03-1.61.49-2.13 1.1-.47.55-.88 1.41-.77 2.23.81.06 1.65-.41 2.15-1.04Z" /></svg> }
 function PackageIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="m4.5 7.5 7.5 4 7.5-4M12 12v8" /></svg> }

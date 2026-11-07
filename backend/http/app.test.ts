@@ -12,6 +12,15 @@ describe('backend foundation', () => {
     expect(response.body).toEqual({ status: 'ok', service: 'diana-phone-shop-api' })
   })
 
+  it('allows configured identity providers without allowing unrelated third-party frames', async () => {
+    const response = await request(createApp()).get('/api/health')
+
+    expect(response.headers['content-security-policy']).toContain('https://accounts.google.com')
+    expect(response.headers['content-security-policy']).toContain('https://appleid.apple.com')
+    expect(response.headers['content-security-policy']).toContain("worker-src 'self' blob:")
+    expect(response.headers['content-security-policy']).not.toContain('sketchfab.com')
+  })
+
   it('reports unconfigured services as not ready', async () => {
     const response = await request(createApp()).get('/api/health/ready')
 

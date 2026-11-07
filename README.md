@@ -23,8 +23,8 @@ For a complete local stack, `docker compose up --build` starts PostgreSQL, Redis
 
 ## Modules And API
 
-- Customer auth: `/api/v1/auth/customer/register`, `/login`, `/refresh`, `/logout`.
-- Owner auth: `/api/v1/auth/admin/login`, `/refresh`, `/logout`. There is no admin registration endpoint.
+- Customer auth: `/api/v1/auth/customer/register`, `/login`, `/google`, `/apple`, `/refresh`, `/logout`.
+- Owner auth: `/api/v1/auth/admin/passkey/status`, `/passkey/setup/{options,verify}`, `/passkey/login/{options,verify}`, `/refresh`, `/logout`. The seeded owner password is accepted only to enroll the first passkey; there is no owner password-login endpoint.
 - Catalog: public `GET /api/v1/categories`, `GET /api/v1/products`, and `GET /api/v1/products/:id`; admin product/category/variant writes are under `/api/v1/admin`. Admin product creation/update accepts `status: draft|active|archived` to control publication.
 - Inventory: admin adjustments at `/api/v1/admin/variants/:variantId/inventory`; each adjustment is recorded in inventory history.
 - Cart and orders: customer routes at `/api/v1/cart` and `/api/v1/orders`. Order creation requires an `Idempotency-Key`; stock and prices are checked and reserved transactionally.
@@ -52,6 +52,11 @@ Copy `.env.example` to `.env` and set values appropriate for the environment:
 | `ACCESS_TOKEN_SECRET` | At least 32 characters; signs short-lived JWT access tokens |
 | `REFRESH_TOKEN_SECRET` | Reserved for token-secret separation; refresh credentials are opaque and stored hashed |
 | `PAYMENT_WEBHOOK_SECRET` | At least 32 characters; enables the HMAC example provider |
+| `GOOGLE_CLIENT_ID` | Google Identity Services Web client ID, also exposed to Vite as `VITE_GOOGLE_CLIENT_ID` |
+| `APPLE_CLIENT_ID` | Apple Sign in with Apple Services ID, also exposed as `VITE_APPLE_CLIENT_ID` |
+| `WEBAUTHN_RP_ID` | WebAuthn relying-party domain, for example `shop.example.com` |
+| `WEBAUTHN_ORIGIN` | Exact HTTPS storefront origin used to verify passkey ceremonies |
+| `VITE_APPLE_REDIRECT_URI` | Apple Services ID return URL registered with Apple; use the storefront origin for popup flow |
 | `BOOTSTRAP_ADMIN_EMAIL` | Owner email for the one-time seed command |
 | `BOOTSTRAP_ADMIN_NAME` | Owner display name for the one-time seed command |
 | `BOOTSTRAP_ADMIN_PASSWORD` | Unique password of at least 12 characters for the one-time seed command |
@@ -60,7 +65,9 @@ Redis failures bypass catalog caching; PostgreSQL remains authoritative. Product
 
 ## Authentication And Payments
 
-Customer and admin routes have separate token audiences and session checks. Passwords use bcryptjs; access tokens expire after 15 minutes; refresh tokens are random opaque values stored as SHA-256 hashes and rotated atomically. Login and customer registration have stricter rate limits than the general API limit. Successful admin catalog, inventory, and order mutations are recorded in `audit_logs`.
+Customer and admin routes have separate token audiences and session checks. Customer passwords use bcryptjs; Google and Apple ID tokens are verified by the backend before their provider identities are linked to customer accounts. Access tokens expire after 15 minutes; refresh tokens are random opaque values stored as SHA-256 hashes and rotated atomically. Login and registration have stricter rate limits than the general API limit. Successful admin catalog, inventory, and order mutations are recorded in `audit_logs`.
+
+On first owner-portal use, the seeded email/password can only create the owner's passkey. The owner password is not accepted as a login credential; subsequent owner access requires a platform authenticator or security key with user verification. Passkey public keys and counters are stored in PostgreSQL, and WebAuthn challenges are single-use and expire after five minutes. Production requires the Google and Apple client IDs plus an HTTPS `WEBAUTHN_ORIGIN` and matching `WEBAUTHN_RP_ID`. Register the storefront origin with Google, Apple, and the WebAuthn relying party before enabling customer/owner authentication.
 
 Orders begin as `pending_payment` after stock reservation. Only a verified provider webhook can mark payment successful and confirm the order. The included HMAC provider is an integration example, not a payment gateway; a real provider adapter and credentials must be supplied before accepting live payments. A failed payment does not count as success.
 

@@ -12,7 +12,16 @@ const customerSessionId = randomUUID()
 let receivedCursor: string | undefined
 const authRepository: AuthRepository = {
   async findAccount() { return null },
+  async findAdminById() { return null },
   async createCustomer() { throw new Error('not used') },
+  async findOrCreateSocialCustomer() { throw new Error('not used') },
+  async countAdminPasskeys() { return 0 },
+  async listAdminPasskeys() { return [] },
+  async findAdminPasskey() { return null },
+  async saveAdminPasskey() {},
+  async updateAdminPasskeyCounter() {},
+  async savePasskeyChallenge() { return randomUUID() },
+  async consumePasskeyChallenge() { return null },
   async createSession() { return randomUUID() },
   async rotateSession() { return null },
   async revokeSession() {},
