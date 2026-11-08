@@ -1,4 +1,10 @@
 .site-shell { overflow: clip; background: var(--page); color: var(--ink); }
+.initial-loading-screen { position: fixed; z-index: 100; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 13px; background: var(--page); animation: loading-screen-out 420ms ease 160ms forwards; pointer-events: none; }
+.loading-wordmark { color: var(--ink); font-family: var(--heading); font-size: 19px; }
+.loading-caption { color: var(--muted); font-size: 8px; letter-spacing: 0.15em; text-transform: uppercase; }
+.loading-track { width: 108px; height: 1px; overflow: hidden; background: var(--line); }
+.loading-track i { display: block; width: 42%; height: 100%; background: var(--accent-strong); animation: loading-progress 850ms ease-in-out infinite alternate; }
+[data-scroll-reveal] { opacity: 0; transition: opacity 680ms ease, transform 680ms cubic-bezier(.16,.72,.24,1); will-change: opacity, transform; }
 [data-scroll-reveal] { opacity: 0; transition: opacity 680ms ease, transform 680ms cubic-bezier(.16,.72,.24,1); will-change: opacity, transform; }
 [data-scroll-reveal][data-scroll-direction='up'][data-scroll-state='before'] { transform: translate3d(0, 44px, 0); }
 [data-scroll-reveal][data-scroll-direction='up'][data-scroll-state='after'] { transform: translate3d(0, -44px, 0); }
@@ -246,6 +252,8 @@
 .auth-note { margin: 17px 0 0; color: var(--muted); font-size: 8px; line-height: 1.6; text-align: center; }
 .toast-message { position: fixed; z-index: 70; right: 24px; bottom: 24px; max-width: min(390px, calc(100vw - 32px)); padding: 14px 18px; background: var(--ink); color: var(--page); box-shadow: var(--shadow); font-size: 10px; animation: rise-in 180ms ease both; }
 
+@keyframes loading-screen-out { to { opacity: 0; visibility: hidden; } }
+@keyframes loading-progress { from { transform: translateX(-8%); } to { transform: translateX(150%); } }
 @keyframes rise-in { from { opacity: 0; transform: translateY(11px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slide-in { from { transform: translateX(24px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }

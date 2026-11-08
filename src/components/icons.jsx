@@ -1,0 +1,15 @@
+export function SunIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.6" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l-1.42 1.42m11.3-11.3 1.42-1.42" /></svg> }
+export function MoonIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 15.4A8.8 8.8 0 0 1 8.6 3.5 8.8 8.8 0 1 0 20.5 15.4Z" /></svg> }
+export function UserIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="3.5" /><path d="M4.8 20c.5-3.1 3.3-5.2 7.2-5.2s6.7 2.1 7.2 5.2" /></svg> }
+export function BagIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8h14l1 13H4L5 8Z" /><path d="M9 9V6a3 3 0 0 1 6 0v3" /></svg> }
+export function MenuIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h16M4 16h16" /></svg> }
+export function ArrowIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" /></svg> }
+export function ArrowDownIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v15m-6-6 6 6 6-6" /></svg> }
+export function SearchIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.6" /><path d="m16 16 4 4" /></svg> }
+export function PlusIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg> }
+export function CloseIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" /></svg> }
+export function ChevronLeftIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m14.5 5-7 7 7 7" /></svg> }
+export function ChevronRightIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9.5 5 7 7-7 7" /></svg> }
+export function GoogleIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285f4" d="M21.6 12.23c0-.72-.06-1.42-.18-2.1H12v3.97h5.39a4.62 4.62 0 0 1-2 3.03v2.48h3.23c1.9-1.75 2.98-4.33 2.98-7.38Z" /><path fill="#34a853" d="M12 22c2.7 0 4.96-.9 6.62-2.39l-3.23-2.48c-.9.6-2.05.96-3.39.96-2.6 0-4.8-1.76-5.59-4.13H3.08v2.56A10 10 0 0 0 12 22Z" /><path fill="#fbbc05" d="M6.41 13.96A6.02 6.02 0 0 1 6.1 12c0-.68.11-1.34.31-1.96V7.48H3.08A10 10 0 0 0 2 12c0 1.62.39 3.15 1.08 4.52l3.33-2.56Z" /><path fill="#ea4335" d="M12 5.91c1.47 0 2.79.51 3.83 1.51l2.87-2.87C16.95 2.98 14.7 2 12 2a10 10 0 0 0-8.92 5.48l3.33 2.56C7.2 7.67 9.4 5.91 12 5.91Z" /></svg> }
+export function AppleIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M17.05 12.54c.02 2.16 1.9 2.88 1.92 2.89-.02.05-.3 1.04-.98 2.06-.59.88-1.2 1.75-2.16 1.77-.94.02-1.25-.57-2.34-.57s-1.43.55-2.32.59c-.93.04-1.64-.95-2.24-1.83-1.22-1.77-2.15-5.01-.9-7.2.62-1.09 1.74-1.78 2.95-1.8.92-.02 1.78.62 2.34.62.56 0 1.61-.77 2.72-.66.47.02 1.8.19 2.65 1.44-.07.04-1.58.93-1.64 2.69ZM15.28 6.72c.5-.61.84-1.45.75-2.29-.73.03-1.61.49-2.13 1.1-.47.55-.88 1.41-.77 2.23.81.06 1.65-.41 2.15-1.04Z" /></svg> }
+export function PackageIcon() { return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" /><path d="m4.5 7.5 7.5 4 7.5-4M12 12v8" /></svg> }
